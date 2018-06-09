@@ -1613,7 +1613,11 @@ void WasmBinaryBuilder::readGlobals() {
 void WasmBinaryBuilder::processExpressions() { // until an end or else marker, or the end of the function
   while (1) {
     Expression* curr;
+
+    if( ++_depth > 1024 ) throw ParseException( "Too many nested loops" );
     auto ret = readExpression(curr);
+    --_depth;
+
     if (!curr) {
       lastSeparator = ret;
       return;
@@ -1926,7 +1930,9 @@ void WasmBinaryBuilder::visitBlock(Block *curr) {
 
 Expression* WasmBinaryBuilder::getMaybeBlock(WasmType type) {
   auto start = expressionStack.size();
+
   processExpressions();
+
   size_t end = expressionStack.size();
   if (start - end == 1) {
     return popExpression();
@@ -1940,6 +1946,8 @@ Expression* WasmBinaryBuilder::getMaybeBlock(WasmType type) {
   }
   block->finalize(type);
   expressionStack.resize(start);
+
+
   return block;
 }
 
@@ -1968,12 +1976,14 @@ void WasmBinaryBuilder::visitIf(If *curr) {
 
 void WasmBinaryBuilder::visitLoop(Loop *curr) {
   if (debug) std::cerr << "zz node: Loop" << std::endl;
+
   curr->type = getWasmType();
   curr->name = getNextLabel();
   breakStack.push_back({curr->name, 0});
   curr->body = getMaybeBlock(curr->type);
   breakStack.pop_back();
   curr->finalize(curr->type);
+
 }
 
 WasmBinaryBuilder::BreakTarget WasmBinaryBuilder::getBreakTarget(int32_t offset) {

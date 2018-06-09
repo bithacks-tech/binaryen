@@ -778,6 +778,7 @@ public:
 
   // AST reading
   int depth = 0; // only for debugging
+  int _depth = 0; /// for release 
 
   BinaryConsts::ASTNodes readExpression(Expression*& curr);
   void visitBlock(Block *curr);
